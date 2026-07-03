@@ -81,6 +81,14 @@ function Index() {
           <ActiveCallScreen
             onHangup={() => setScreen("home")}
             onVerified={() => setScreen("secured")}
+            onMismatch={() => setScreen("mismatch")}
+          />
+        )}
+        {screen === "mismatch" && (
+          <ActiveCallScreen
+            sasMismatch
+            onHangup={() => setScreen("home")}
+            onVerified={() => {}}
           />
         )}
         {screen === "secured" && (
