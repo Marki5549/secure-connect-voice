@@ -47,6 +47,7 @@ function Index() {
               ["home", "Home"],
               ["incoming", "Incoming"],
               ["active", "In call"],
+              ["mismatch", "Mismatch"],
               ["secured", "Secured"],
             ] as [Screen, string][]
           ).map(([id, label]) => (
