@@ -22,7 +22,7 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type Screen = "login" | "home" | "incoming" | "active" | "secured";
+type Screen = "login" | "home" | "incoming" | "active" | "mismatch" | "secured";
 
 const contacts = [
   { name: "Anna Kovalenko", number: "+380 67 214 8890" },
