@@ -13,6 +13,7 @@ import {
   Volume2,
   ShieldCheck,
   ShieldQuestion,
+  AlertTriangle,
   Check,
   X,
   Lock,
@@ -22,7 +23,7 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type Screen = "login" | "home" | "incoming" | "active" | "secured";
+type Screen = "login" | "home" | "incoming" | "active" | "mismatch" | "secured";
 
 const contacts = [
   { name: "Anna Kovalenko", number: "+380 67 214 8890" },
@@ -47,6 +48,7 @@ function Index() {
               ["home", "Home"],
               ["incoming", "Incoming"],
               ["active", "In call"],
+              ["mismatch", "Mismatch"],
               ["secured", "Secured"],
             ] as [Screen, string][]
           ).map(([id, label]) => (
@@ -80,6 +82,14 @@ function Index() {
           <ActiveCallScreen
             onHangup={() => setScreen("home")}
             onVerified={() => setScreen("secured")}
+            onMismatch={() => setScreen("mismatch")}
+          />
+        )}
+        {screen === "mismatch" && (
+          <ActiveCallScreen
+            sasMismatch
+            onHangup={() => setScreen("home")}
+            onVerified={() => {}}
           />
         )}
         {screen === "secured" && (
@@ -324,11 +334,15 @@ function IncomingCallScreen({
 function ActiveCallScreen({
   onHangup,
   onVerified,
+  onMismatch,
   secured = false,
+  sasMismatch = false,
 }: {
   onHangup: () => void;
   onVerified: () => void;
+  onMismatch?: () => void;
   secured?: boolean;
+  sasMismatch?: boolean;
 }) {
   const [muted, setMuted] = useState(false);
   const [speaker, setSpeaker] = useState(true);
@@ -336,7 +350,7 @@ function ActiveCallScreen({
   return (
     <div className="flex min-h-[calc(100vh-40px)] flex-col items-center px-6 pb-8 pt-10">
       <div className="text-xs uppercase tracking-widest text-muted-foreground">
-        {secured ? "Secure call" : "In call"}
+        {secured ? "Secure call" : sasMismatch ? "Warning" : "In call"}
       </div>
 
       <div className="mt-6 grid h-24 w-24 place-items-center rounded-full bg-primary/15 text-2xl font-semibold text-primary ring-1 ring-primary/30">
@@ -359,6 +373,22 @@ function ActiveCallScreen({
               SAS verified · end-to-end encrypted (ZRTP)
             </div>
           </div>
+        ) : sasMismatch ? (
+          <div className="flex flex-col items-center gap-3 py-2 text-center">
+            <div className="grid h-11 w-11 place-items-center rounded-full bg-destructive/15 text-destructive">
+              <AlertTriangle size={22} />
+            </div>
+            <div className="text-sm font-semibold text-destructive">SAS mismatch detected</div>
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
+              The short authentication strings do not match. A third party may be intercepting this call.
+            </p>
+            <button
+              onClick={onHangup}
+              className="mt-1 flex h-10 w-full items-center justify-center gap-1.5 rounded-lg bg-destructive text-xs font-semibold text-destructive-foreground transition hover:brightness-110"
+            >
+              <PhoneOff size={14} /> End call immediately
+            </button>
+          </div>
         ) : (
           <>
             <div className="flex items-center justify-center gap-2 text-[11px] uppercase tracking-widest text-muted-foreground">
@@ -371,7 +401,10 @@ function ActiveCallScreen({
               Read the code aloud and confirm the other party sees the same four characters.
             </p>
             <div className="mt-4 grid grid-cols-2 gap-2">
-              <button className="flex h-10 items-center justify-center gap-1.5 rounded-lg border border-destructive/40 bg-destructive/10 text-xs font-semibold text-destructive transition hover:bg-destructive/20">
+              <button
+                onClick={onMismatch}
+                className="flex h-10 items-center justify-center gap-1.5 rounded-lg border border-destructive/40 bg-destructive/10 text-xs font-semibold text-destructive transition hover:bg-destructive/20"
+              >
                 <X size={14} /> No match
               </button>
               <button
