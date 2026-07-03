@@ -46,7 +46,6 @@
 :root {
   --radius: 0.875rem;
 
-  /* Deep forest / emerald dark theme */
   --background: oklch(0.18 0.02 160);
   --foreground: oklch(0.96 0.01 150);
 
