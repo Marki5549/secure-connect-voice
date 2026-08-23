@@ -125,9 +125,42 @@ function initials(name: string) {
     .join("");
 }
 
+type CallState = "active" | "mismatch" | "secured";
+
+function fmtDuration(s: number) {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+}
+
 function Index() {
   const [screen, setScreen] = useState<Screen>("login");
   const [peer, setPeer] = useState<Contact>(contacts[0]);
+  const [call, setCall] = useState<{ contact: Contact; state: CallState } | null>(null);
+  const [seconds, setSeconds] = useState(0);
+
+  useEffect(() => {
+    if (!call) {
+      setSeconds(0);
+      return;
+    }
+    const t = setInterval(() => setSeconds((v) => v + 1), 1000);
+    return () => clearInterval(t);
+  }, [call]);
+
+  const onCallScreen = screen === "active" || screen === "mismatch" || screen === "secured";
+  const startCall = (contact: Contact, state: CallState = "active") => {
+    setCall({ contact, state });
+    setScreen(state);
+  };
+  const endCall = () => {
+    setCall(null);
+    setScreen("home");
+  };
+  const setCallState = (state: CallState) => {
+    setCall((c) => (c ? { ...c, state } : c));
+    setScreen(state);
+  };
 
   return (
     <div className="min-h-screen w-full bg-background text-foreground">
@@ -148,7 +181,13 @@ function Index() {
           ).map(([id, label]) => (
             <button
               key={id}
-              onClick={() => setScreen(id)}
+              onClick={() => {
+                if (id === "active" || id === "mismatch" || id === "secured") {
+                  startCall(call?.contact ?? peer, id);
+                } else {
+                  setScreen(id);
+                }
+              }}
               className={`rounded-full px-2.5 py-1 transition ${
                 screen === id
                   ? "bg-primary text-primary-foreground"
@@ -161,11 +200,24 @@ function Index() {
         </div>
       </div>
 
+      {call && !onCallScreen && (
+        <OngoingCallBar
+          contact={call.contact}
+          state={call.state}
+          duration={fmtDuration(seconds)}
+          onReturn={() => setScreen(call.state)}
+          onHangup={endCall}
+        />
+      )}
+
       <div className="mx-auto min-h-[calc(100vh-40px)] max-w-md phone-shell">
         {screen === "login" && <LoginScreen onContinue={() => setScreen("home")} />}
         {screen === "home" && (
           <HomeScreen
-            onLogout={() => setScreen("login")}
+            onLogout={() => {
+              setCall(null);
+              setScreen("login");
+            }}
             onCall={() => setScreen("incoming")}
             onChat={(c) => {
               setPeer(c);
@@ -177,7 +229,7 @@ function Index() {
           <ChatScreen
             contact={peer}
             onBack={() => setScreen("home")}
-            onCall={() => setScreen("active")}
+            onCall={() => startCall(peer)}
             onVerify={() => setScreen("verify")}
           />
         )}
@@ -186,31 +238,86 @@ function Index() {
         )}
         {screen === "incoming" && (
           <IncomingCallScreen
-            onAccept={() => setScreen("active")}
+            onAccept={() => startCall(peer)}
             onDecline={() => setScreen("home")}
           />
         )}
-        {screen === "active" && (
+        {onCallScreen && (
           <ActiveCallScreen
-            onHangup={() => setScreen("home")}
-            onVerified={() => setScreen("secured")}
-            onMismatch={() => setScreen("mismatch")}
+            contact={call?.contact ?? peer}
+            duration={fmtDuration(seconds)}
+            secured={screen === "secured"}
+            sasMismatch={screen === "mismatch"}
+            onHangup={endCall}
+            onVerified={() => setCallState("secured")}
+            onMismatch={() => setCallState("mismatch")}
+            onMinimize={() => setScreen("home")}
           />
-        )}
-        {screen === "mismatch" && (
-          <ActiveCallScreen
-            sasMismatch
-            onHangup={() => setScreen("home")}
-            onVerified={() => {}}
-          />
-        )}
-        {screen === "secured" && (
-          <ActiveCallScreen secured onHangup={() => setScreen("home")} onVerified={() => {}} />
         )}
       </div>
     </div>
   );
 }
+
+function OngoingCallBar({
+  contact,
+  state,
+  duration,
+  onReturn,
+  onHangup,
+}: {
+  contact: Contact;
+  state: CallState;
+  duration: string;
+  onReturn: () => void;
+  onHangup: () => void;
+}) {
+  const tone =
+    state === "secured"
+      ? { bg: "bg-success/15", text: "text-success", icon: <ShieldCheck size={14} />, label: "Secure call" }
+      : state === "mismatch"
+        ? {
+            bg: "bg-destructive/15",
+            text: "text-destructive",
+            icon: <AlertTriangle size={14} />,
+            label: "Unverified SAS",
+          }
+        : {
+            bg: "bg-primary/15",
+            text: "text-primary",
+            icon: <ShieldQuestion size={14} />,
+            label: "Call in progress",
+          };
+
+  return (
+    <div className="sticky top-[41px] z-30 mx-auto max-w-md px-3 pt-2">
+      <div className={`flex items-center gap-3 rounded-xl border border-border ${tone.bg} px-3 py-2 shadow-card`}>
+        <button onClick={onReturn} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+          <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full bg-background/40 ${tone.text}`}>
+            {tone.icon}
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-xs font-semibold">{contact.name}</span>
+            <span className={`block text-[10px] ${tone.text}`}>
+              {tone.label} · {duration}
+            </span>
+          </span>
+          <span className="ml-auto shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Tap to return
+          </span>
+        </button>
+        <button
+          onClick={onHangup}
+          aria-label="Hang up"
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-destructive text-destructive-foreground transition active:scale-95"
+        >
+          <PhoneOff size={15} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 
 
 function BrandMark({ size = 44 }: { size?: number }) {
