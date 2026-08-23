@@ -293,7 +293,15 @@ function Field({ label, placeholder }: { label: string; placeholder: string }) {
   );
 }
 
-function HomeScreen({ onLogout, onCall }: { onLogout: () => void; onCall: () => void }) {
+function HomeScreen({
+  onLogout,
+  onCall,
+  onChat,
+}: {
+  onLogout: () => void;
+  onCall: () => void;
+  onChat: (c: Contact) => void;
+}) {
   return (
     <div className="flex min-h-[calc(100vh-40px)] flex-col px-4 pb-6 pt-6">
       <div className="flex items-center gap-3">
