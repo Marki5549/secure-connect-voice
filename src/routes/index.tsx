@@ -13,29 +13,121 @@ import {
   Volume2,
   ShieldCheck,
   ShieldQuestion,
+  ShieldAlert,
+  Shield,
   AlertTriangle,
   Check,
   X,
   Lock,
+  MessageSquare,
+  ChevronLeft,
+  Send,
+  Fingerprint,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type Screen = "login" | "home" | "incoming" | "active" | "mismatch" | "secured";
+type Screen =
+  | "login"
+  | "home"
+  | "incoming"
+  | "active"
+  | "mismatch"
+  | "secured"
+  | "chat"
+  | "verify";
 
-const contacts = [
-  { name: "Anna Kovalenko", number: "+380 67 214 8890" },
-  { name: "Dmytro Shevchuk", number: "+380 50 118 4421" },
-  { name: "Olena Marchenko", number: "+380 93 552 7710" },
-  { name: "Ivan Petrenko", number: "+380 68 907 3312" },
-  { name: "Sofia Bondar", number: "+380 66 224 5588" },
-  { name: "Maksym Tkachenko", number: "+380 95 401 9923" },
+type Trust = "unverified" | "verified" | "danger";
+
+type Contact = {
+  name: string;
+  number: string;
+  trust: Trust;
+  unread: number;
+  fingerprint: string;
+};
+
+const contacts: Contact[] = [
+  {
+    name: "Anna Kovalenko",
+    number: "+380 67 214 8890",
+    trust: "verified",
+    unread: 2,
+    fingerprint: "8F3A 21D9 4C77 0E12 BB65 9A34 5D18 7C90",
+  },
+  {
+    name: "Dmytro Shevchuk",
+    number: "+380 50 118 4421",
+    trust: "unverified",
+    unread: 0,
+    fingerprint: "1B44 90CE 22A7 6F30 D519 4E8B 7712 03AF",
+  },
+  {
+    name: "Olena Marchenko",
+    number: "+380 93 552 7710",
+    trust: "danger",
+    unread: 5,
+    fingerprint: "77C1 0D23 9E48 A5B6 3F02 8811 6CD4 92E7",
+  },
+  {
+    name: "Ivan Petrenko",
+    number: "+380 68 907 3312",
+    trust: "unverified",
+    unread: 0,
+    fingerprint: "5A29 B70F 1C64 88D3 E011 47A9 2B55 6E38",
+  },
+  {
+    name: "Sofia Bondar",
+    number: "+380 66 224 5588",
+    trust: "verified",
+    unread: 1,
+    fingerprint: "C3E8 5512 7A0B 96F4 21D7 8834 0AB6 4F19",
+  },
+  {
+    name: "Maksym Tkachenko",
+    number: "+380 95 401 9923",
+    trust: "unverified",
+    unread: 0,
+    fingerprint: "2D96 4417 F80A 3B25 7CE1 5090 D362 8A74",
+  },
 ];
+
+const MY_FINGERPRINT = "A94F 27C0 6B13 D85E 30A2 71FC 4499 0B6D";
+
+const trustMeta: Record<Trust, { label: string; dot: string; text: string; bg: string }> = {
+  unverified: {
+    label: "Not verified",
+    dot: "bg-muted-foreground",
+    text: "text-muted-foreground",
+    bg: "bg-muted-foreground/15",
+  },
+  verified: {
+    label: "Verified",
+    dot: "bg-success",
+    text: "text-success",
+    bg: "bg-success/15",
+  },
+  danger: {
+    label: "Unsafe",
+    dot: "bg-destructive",
+    text: "text-destructive",
+    bg: "bg-destructive/15",
+  },
+};
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join("");
+}
 
 function Index() {
   const [screen, setScreen] = useState<Screen>("login");
+  const [peer, setPeer] = useState<Contact>(contacts[0]);
 
   return (
     <div className="min-h-screen w-full bg-background text-foreground">
@@ -50,6 +142,8 @@ function Index() {
               ["active", "In call"],
               ["mismatch", "Mismatch"],
               ["secured", "Secured"],
+              ["chat", "Chat"],
+              ["verify", "Verify"],
             ] as [Screen, string][]
           ).map(([id, label]) => (
             <button
@@ -70,7 +164,25 @@ function Index() {
       <div className="mx-auto min-h-[calc(100vh-40px)] max-w-md phone-shell">
         {screen === "login" && <LoginScreen onContinue={() => setScreen("home")} />}
         {screen === "home" && (
-          <HomeScreen onLogout={() => setScreen("login")} onCall={() => setScreen("incoming")} />
+          <HomeScreen
+            onLogout={() => setScreen("login")}
+            onCall={() => setScreen("incoming")}
+            onChat={(c) => {
+              setPeer(c);
+              setScreen("chat");
+            }}
+          />
+        )}
+        {screen === "chat" && (
+          <ChatScreen
+            contact={peer}
+            onBack={() => setScreen("home")}
+            onCall={() => setScreen("active")}
+            onVerify={() => setScreen("verify")}
+          />
+        )}
+        {screen === "verify" && (
+          <VerifyScreen contact={peer} onBack={() => setScreen("chat")} />
         )}
         {screen === "incoming" && (
           <IncomingCallScreen
@@ -99,6 +211,7 @@ function Index() {
     </div>
   );
 }
+
 
 function BrandMark({ size = 44 }: { size?: number }) {
   return (
@@ -180,7 +293,15 @@ function Field({ label, placeholder }: { label: string; placeholder: string }) {
   );
 }
 
-function HomeScreen({ onLogout, onCall }: { onLogout: () => void; onCall: () => void }) {
+function HomeScreen({
+  onLogout,
+  onCall,
+  onChat,
+}: {
+  onLogout: () => void;
+  onCall: () => void;
+  onChat: (c: Contact) => void;
+}) {
   return (
     <div className="flex min-h-[calc(100vh-40px)] flex-col px-4 pb-6 pt-6">
       <div className="flex items-center gap-3">
@@ -234,34 +355,255 @@ function HomeScreen({ onLogout, onCall }: { onLogout: () => void; onCall: () => 
       </div>
 
       <div className="mt-2 space-y-2 pb-4">
-        {contacts.map((c) => (
-          <div
-            key={c.number}
-            className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2.5"
-          >
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/15 text-xs font-semibold text-primary">
-                {c.name
-                  .split(" ")
-                  .map((p) => p[0])
-                  .slice(0, 2)
-                  .join("")}
-              </div>
-              <div className="min-w-0">
-                <div className="truncate text-sm font-medium">{c.name}</div>
-                <div className="truncate font-mono text-[11px] text-muted-foreground">
-                  {c.number}
+        {contacts.map((c) => {
+          const t = trustMeta[c.trust];
+          return (
+            <div
+              key={c.number}
+              className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-3 py-2.5"
+            >
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="relative shrink-0">
+                  <div className="grid h-9 w-9 place-items-center rounded-full bg-primary/15 text-xs font-semibold text-primary">
+                    {initials(c.name)}
+                  </div>
+                  <span
+                    title={t.label}
+                    className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card ${t.dot}`}
+                  />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="truncate text-sm font-medium">{c.name}</span>
+                    {c.unread > 0 && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
+                        <MessageSquare size={9} /> {c.unread}
+                      </span>
+                    )}
+                  </div>
+                  <div className={`truncate text-[11px] ${t.text}`}>{t.label}</div>
                 </div>
               </div>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <button
+                  onClick={() => onChat(c)}
+                  aria-label={`Chat with ${c.name}`}
+                  className="relative grid h-8 w-8 place-items-center rounded-full bg-secondary text-secondary-foreground transition hover:bg-accent active:scale-95"
+                >
+                  <MessageSquare size={15} />
+                  {c.unread > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-card bg-primary" />
+                  )}
+                </button>
+                <button
+                  onClick={onCall}
+                  className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition hover:brightness-110 active:scale-95"
+                >
+                  <Phone size={13} /> CALL
+                </button>
+              </div>
             </div>
-            <button
-              onClick={onCall}
-              className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition hover:brightness-110 active:scale-95"
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+const demoMessages = [
+  { me: false, text: "Hi, are you available for a secure call today?", time: "09:41" },
+  { me: true, text: "Yes, give me ten minutes.", time: "09:42" },
+  { me: false, text: "Perfect. I'll send the briefing beforehand.", time: "09:42" },
+  { me: true, text: "Received. Let's verify fingerprints first.", time: "09:44" },
+];
+
+function ChatScreen({
+  contact,
+  onBack,
+  onCall,
+  onVerify,
+}: {
+  contact: Contact;
+  onBack: () => void;
+  onCall: () => void;
+  onVerify: () => void;
+}) {
+  const t = trustMeta[contact.trust];
+  const [draft, setDraft] = useState("");
+
+  return (
+    <div className="flex min-h-[calc(100vh-40px)] flex-col">
+      <div className="sticky top-[40px] z-30 flex items-center gap-3 border-b border-border bg-background/85 px-3 py-2.5 backdrop-blur">
+        <button
+          onClick={onBack}
+          aria-label="Back"
+          className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <div className="relative shrink-0">
+          <div className="grid h-9 w-9 place-items-center rounded-full bg-primary/15 text-xs font-semibold text-primary">
+            {initials(contact.name)}
+          </div>
+          <span
+            className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background ${t.dot}`}
+          />
+        </div>
+        <div className="min-w-0 flex-1 leading-tight">
+          <div className="truncate text-sm font-semibold">{contact.name}</div>
+          <div className={`flex items-center gap-1 text-[11px] ${t.text}`}>
+            {contact.trust === "verified" ? (
+              <ShieldCheck size={11} />
+            ) : contact.trust === "danger" ? (
+              <ShieldAlert size={11} />
+            ) : (
+              <Shield size={11} />
+            )}
+            {t.label}
+          </div>
+        </div>
+        <button
+          onClick={onVerify}
+          aria-label="Verify contact"
+          className="grid h-9 w-9 place-items-center rounded-full bg-secondary text-secondary-foreground transition hover:bg-accent"
+        >
+          <Fingerprint size={17} />
+        </button>
+        <button
+          onClick={onCall}
+          aria-label="Call"
+          className="grid h-9 w-9 place-items-center rounded-full bg-primary text-primary-foreground transition hover:brightness-110"
+        >
+          <Phone size={16} />
+        </button>
+      </div>
+
+      {contact.trust !== "verified" && (
+        <button
+          onClick={onVerify}
+          className={`mx-3 mt-3 flex items-center gap-2 rounded-xl border px-3 py-2 text-left text-[11px] ${
+            contact.trust === "danger"
+              ? "border-destructive/40 bg-destructive/10 text-destructive"
+              : "border-border bg-card text-muted-foreground"
+          }`}
+        >
+          {contact.trust === "danger" ? <AlertTriangle size={14} /> : <Shield size={14} />}
+          <span className="flex-1">
+            {contact.trust === "danger"
+              ? "Fingerprint changed — this conversation may be unsafe. Verify now."
+              : "This contact is not verified yet. Compare fingerprints to secure the chat."}
+          </span>
+        </button>
+      )}
+
+      <div className="flex-1 space-y-2.5 px-3 py-4">
+        <div className="mx-auto w-fit rounded-full bg-secondary px-3 py-1 text-[10px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1">
+            <Lock size={9} /> Messages are end-to-end encrypted
+          </span>
+        </div>
+        {demoMessages.map((m, i) => (
+          <div key={i} className={`flex ${m.me ? "justify-end" : "justify-start"}`}>
+            <div
+              className={`max-w-[78%] rounded-2xl px-3.5 py-2 text-sm shadow-card ${
+                m.me
+                  ? "rounded-br-md bg-primary text-primary-foreground"
+                  : "rounded-bl-md border border-border bg-card text-card-foreground"
+              }`}
             >
-              <Phone size={13} /> CALL
-            </button>
+              <div>{m.text}</div>
+              <div
+                className={`mt-1 text-right font-mono text-[10px] ${
+                  m.me ? "text-primary-foreground/70" : "text-muted-foreground"
+                }`}
+              >
+                {m.time}
+              </div>
+            </div>
           </div>
         ))}
+      </div>
+
+      <div className="sticky bottom-0 flex items-center gap-2 border-t border-border bg-background/85 px-3 py-2.5 backdrop-blur">
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="Secure message"
+          className="h-11 flex-1 rounded-full border border-border bg-input px-4 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/40"
+        />
+        <button
+          onClick={() => setDraft("")}
+          aria-label="Send"
+          className="grid h-11 w-11 place-items-center rounded-full bg-primary text-primary-foreground transition hover:brightness-110 active:scale-95"
+        >
+          <Send size={18} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function VerifyScreen({ contact, onBack }: { contact: Contact; onBack: () => void }) {
+  const [state, setState] = useState<Trust>(contact.trust);
+  const t = trustMeta[state];
+
+  return (
+    <div className="flex min-h-[calc(100vh-40px)] flex-col px-4 pb-8 pt-3">
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onBack}
+          aria-label="Back"
+          className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <div className="text-sm font-semibold">Verify contact</div>
+      </div>
+
+      <div className="mt-6 flex flex-col items-center text-center">
+        <div className="grid h-16 w-16 place-items-center rounded-full bg-primary/15 text-primary">
+          <Fingerprint size={30} />
+        </div>
+        <div className="mt-3 text-lg font-semibold">{contact.name}</div>
+        <span
+          className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${t.bg} ${t.text}`}
+        >
+          <span className={`h-1.5 w-1.5 rounded-full ${t.dot}`} /> {t.label}
+        </span>
+      </div>
+
+      <p className="mt-6 text-center text-[11px] leading-relaxed text-muted-foreground">
+        Compare both fingerprints over a trusted channel — read them aloud during a secure call.
+        They must match exactly.
+      </p>
+
+      <FingerprintCard title="Your fingerprint" value={MY_FINGERPRINT} />
+      <FingerprintCard title={`${contact.name}'s fingerprint`} value={contact.fingerprint} />
+
+      <div className="mt-auto space-y-2 pt-8">
+        <button
+          onClick={() => setState("verified")}
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-success text-sm font-semibold text-success-foreground transition hover:brightness-110 active:scale-[0.99]"
+        >
+          <ShieldCheck size={17} /> Verify
+        </button>
+        <button
+          onClick={() => setState("danger")}
+          className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-destructive/40 bg-destructive/10 text-sm font-semibold text-destructive transition hover:bg-destructive/20"
+        >
+          <X size={16} /> Fingerprints don't match
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function FingerprintCard({ title, value }: { title: string; value: string }) {
+  return (
+    <div className="mt-4 rounded-2xl border border-border bg-card p-4 shadow-card">
+      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{title}</div>
+      <div className="mt-2 select-all font-mono text-sm leading-relaxed tracking-wide text-foreground">
+        {value}
       </div>
     </div>
   );
