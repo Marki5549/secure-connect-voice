@@ -13,29 +13,121 @@ import {
   Volume2,
   ShieldCheck,
   ShieldQuestion,
+  ShieldAlert,
+  Shield,
   AlertTriangle,
   Check,
   X,
   Lock,
+  MessageSquare,
+  ChevronLeft,
+  Send,
+  Fingerprint,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type Screen = "login" | "home" | "incoming" | "active" | "mismatch" | "secured";
+type Screen =
+  | "login"
+  | "home"
+  | "incoming"
+  | "active"
+  | "mismatch"
+  | "secured"
+  | "chat"
+  | "verify";
 
-const contacts = [
-  { name: "Anna Kovalenko", number: "+380 67 214 8890" },
-  { name: "Dmytro Shevchuk", number: "+380 50 118 4421" },
-  { name: "Olena Marchenko", number: "+380 93 552 7710" },
-  { name: "Ivan Petrenko", number: "+380 68 907 3312" },
-  { name: "Sofia Bondar", number: "+380 66 224 5588" },
-  { name: "Maksym Tkachenko", number: "+380 95 401 9923" },
+type Trust = "unverified" | "verified" | "danger";
+
+type Contact = {
+  name: string;
+  number: string;
+  trust: Trust;
+  unread: number;
+  fingerprint: string;
+};
+
+const contacts: Contact[] = [
+  {
+    name: "Anna Kovalenko",
+    number: "+380 67 214 8890",
+    trust: "verified",
+    unread: 2,
+    fingerprint: "8F3A 21D9 4C77 0E12 BB65 9A34 5D18 7C90",
+  },
+  {
+    name: "Dmytro Shevchuk",
+    number: "+380 50 118 4421",
+    trust: "unverified",
+    unread: 0,
+    fingerprint: "1B44 90CE 22A7 6F30 D519 4E8B 7712 03AF",
+  },
+  {
+    name: "Olena Marchenko",
+    number: "+380 93 552 7710",
+    trust: "danger",
+    unread: 5,
+    fingerprint: "77C1 0D23 9E48 A5B6 3F02 8811 6CD4 92E7",
+  },
+  {
+    name: "Ivan Petrenko",
+    number: "+380 68 907 3312",
+    trust: "unverified",
+    unread: 0,
+    fingerprint: "5A29 B70F 1C64 88D3 E011 47A9 2B55 6E38",
+  },
+  {
+    name: "Sofia Bondar",
+    number: "+380 66 224 5588",
+    trust: "verified",
+    unread: 1,
+    fingerprint: "C3E8 5512 7A0B 96F4 21D7 8834 0AB6 4F19",
+  },
+  {
+    name: "Maksym Tkachenko",
+    number: "+380 95 401 9923",
+    trust: "unverified",
+    unread: 0,
+    fingerprint: "2D96 4417 F80A 3B25 7CE1 5090 D362 8A74",
+  },
 ];
+
+const MY_FINGERPRINT = "A94F 27C0 6B13 D85E 30A2 71FC 4499 0B6D";
+
+const trustMeta: Record<Trust, { label: string; dot: string; text: string; bg: string }> = {
+  unverified: {
+    label: "Not verified",
+    dot: "bg-muted-foreground",
+    text: "text-muted-foreground",
+    bg: "bg-muted-foreground/15",
+  },
+  verified: {
+    label: "Verified",
+    dot: "bg-success",
+    text: "text-success",
+    bg: "bg-success/15",
+  },
+  danger: {
+    label: "Unsafe",
+    dot: "bg-destructive",
+    text: "text-destructive",
+    bg: "bg-destructive/15",
+  },
+};
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join("");
+}
 
 function Index() {
   const [screen, setScreen] = useState<Screen>("login");
+  const [peer, setPeer] = useState<Contact>(contacts[0]);
 
   return (
     <div className="min-h-screen w-full bg-background text-foreground">
@@ -50,6 +142,8 @@ function Index() {
               ["active", "In call"],
               ["mismatch", "Mismatch"],
               ["secured", "Secured"],
+              ["chat", "Chat"],
+              ["verify", "Verify"],
             ] as [Screen, string][]
           ).map(([id, label]) => (
             <button
@@ -70,7 +164,25 @@ function Index() {
       <div className="mx-auto min-h-[calc(100vh-40px)] max-w-md phone-shell">
         {screen === "login" && <LoginScreen onContinue={() => setScreen("home")} />}
         {screen === "home" && (
-          <HomeScreen onLogout={() => setScreen("login")} onCall={() => setScreen("incoming")} />
+          <HomeScreen
+            onLogout={() => setScreen("login")}
+            onCall={() => setScreen("incoming")}
+            onChat={(c) => {
+              setPeer(c);
+              setScreen("chat");
+            }}
+          />
+        )}
+        {screen === "chat" && (
+          <ChatScreen
+            contact={peer}
+            onBack={() => setScreen("home")}
+            onCall={() => setScreen("active")}
+            onVerify={() => setScreen("verify")}
+          />
+        )}
+        {screen === "verify" && (
+          <VerifyScreen contact={peer} onBack={() => setScreen("chat")} />
         )}
         {screen === "incoming" && (
           <IncomingCallScreen
@@ -99,6 +211,7 @@ function Index() {
     </div>
   );
 }
+
 
 function BrandMark({ size = 44 }: { size?: number }) {
   return (
