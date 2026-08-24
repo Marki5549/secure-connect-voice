@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Eye,
   EyeOff,
@@ -781,15 +781,21 @@ function IncomingCallScreen({
 }
 
 function ActiveCallScreen({
+  contact,
+  duration,
   onHangup,
   onVerified,
   onMismatch,
+  onMinimize,
   secured = false,
   sasMismatch = false,
 }: {
+  contact: Contact;
+  duration: string;
   onHangup: () => void;
   onVerified: () => void;
   onMismatch?: () => void;
+  onMinimize?: () => void;
   secured?: boolean;
   sasMismatch?: boolean;
 }) {
@@ -797,19 +803,30 @@ function ActiveCallScreen({
   const [speaker, setSpeaker] = useState(true);
 
   return (
-    <div className="flex min-h-[calc(100vh-40px)] flex-col items-center px-6 pb-8 pt-10">
-      <div className="text-xs uppercase tracking-widest text-muted-foreground">
-        {secured ? "Secure call" : sasMismatch ? "Warning" : "In call"}
+    <div className="flex min-h-[calc(100vh-40px)] flex-col items-center px-6 pb-8 pt-4">
+      <div className="flex w-full items-center">
+        <button
+          onClick={onMinimize}
+          aria-label="Back"
+          className="-ml-2 grid h-9 w-9 place-items-center rounded-full text-muted-foreground transition hover:bg-accent hover:text-foreground"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <div className="flex-1 text-center text-xs uppercase tracking-widest text-muted-foreground">
+          {secured ? "Secure call" : sasMismatch ? "Warning" : "In call"}
+        </div>
+        <span className="h-9 w-9" />
       </div>
 
-      <div className="mt-6 grid h-24 w-24 place-items-center rounded-full bg-primary/15 text-2xl font-semibold text-primary ring-1 ring-primary/30">
-        AK
+      <div className="mt-4 grid h-24 w-24 place-items-center rounded-full bg-primary/15 text-2xl font-semibold text-primary ring-1 ring-primary/30">
+        {initials(contact.name)}
       </div>
       <div className="mt-4 text-center">
-        <div className="text-xl font-semibold">Anna Kovalenko</div>
-        <div className="mt-0.5 font-mono text-xs text-muted-foreground">+380 67 214 8890</div>
-        <div className="mt-2 font-mono text-xs text-success">00:47</div>
+        <div className="text-xl font-semibold">{contact.name}</div>
+        <div className="mt-0.5 font-mono text-xs text-muted-foreground">{contact.number}</div>
+        <div className="mt-2 font-mono text-xs text-success">{duration}</div>
       </div>
+
 
       <div className="mt-6 w-full rounded-2xl border border-border bg-card p-4 shadow-card">
         {secured ? (
