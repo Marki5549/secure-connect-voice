@@ -680,12 +680,11 @@ function VerifyScreen({ contact, onBack }: { contact: Contact; onBack: () => voi
       </div>
 
       <p className="mt-6 text-center text-[11px] leading-relaxed text-muted-foreground">
-        Compare both fingerprints over a trusted channel — read them aloud during a secure call.
-        They must match exactly.
+        Compare this fingerprint over a trusted channel — read it aloud during a secure call.
+        It must match exactly on the other device.
       </p>
 
-      <FingerprintCard title="Your fingerprint" value={MY_FINGERPRINT} />
-      <FingerprintCard title={`${contact.name}'s fingerprint`} value={contact.fingerprint} />
+      <FingerprintCard title="Fingerprint" value={contact.fingerprint} />
 
       <div className="mt-auto space-y-2 pt-8">
         <button
@@ -698,7 +697,7 @@ function VerifyScreen({ contact, onBack }: { contact: Contact; onBack: () => voi
           onClick={() => setState("danger")}
           className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-destructive/40 bg-destructive/10 text-sm font-semibold text-destructive transition hover:bg-destructive/20"
         >
-          <X size={16} /> Fingerprints don't match
+          <X size={16} /> Fingerprint doesn't match
         </button>
       </div>
     </div>
