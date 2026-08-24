@@ -103,25 +103,30 @@ const contacts: Contact[] = [
 
 
 
-const trustMeta: Record<Trust, { label: string; dot: string; text: string; bg: string }> = {
+const trustMeta: Record<Trust, { label: string; text: string; bg: string }> = {
   unverified: {
     label: "Not verified",
-    dot: "bg-muted-foreground",
     text: "text-muted-foreground",
     bg: "bg-muted-foreground/15",
   },
   verified: {
     label: "Verified",
-    dot: "bg-success",
     text: "text-success",
     bg: "bg-success/15",
   },
   danger: {
     label: "Unsafe",
-    dot: "bg-destructive",
     text: "text-destructive",
     bg: "bg-destructive/15",
   },
+};
+
+const statusMeta: Record<
+  Contact["status"],
+  { label: string; dot: string }
+> = {
+  online: { label: "Online", dot: "bg-success" },
+  offline: { label: "Offline", dot: "bg-muted-foreground" },
 };
 
 function initials(name: string) {
