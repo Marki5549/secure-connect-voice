@@ -94,7 +94,7 @@ const contacts: Contact[] = [
   },
 ];
 
-const MY_FINGERPRINT = "A94F 27C0 6B13 D85E 30A2 71FC 4499 0B6D";
+
 
 const trustMeta: Record<Trust, { label: string; dot: string; text: string; bg: string }> = {
   unverified: {
