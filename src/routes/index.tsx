@@ -479,6 +479,7 @@ function HomeScreen({
       <div className="mt-2 space-y-2 pb-4">
         {contacts.map((c) => {
           const t = trustMeta[c.trust];
+          const s = statusMeta[c.status];
           return (
             <div
               key={c.number}
@@ -490,8 +491,8 @@ function HomeScreen({
                     {initials(c.name)}
                   </div>
                   <span
-                    title={t.label}
-                    className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card ${t.dot}`}
+                    title={s.label}
+                    className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card ${s.dot}`}
                   />
                 </div>
                 <div className="min-w-0">
