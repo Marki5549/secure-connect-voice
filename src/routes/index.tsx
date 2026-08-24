@@ -103,19 +103,22 @@ const contacts: Contact[] = [
 
 
 
-const trustMeta: Record<Trust, { label: string; text: string; bg: string }> = {
+const trustMeta: Record<Trust, { label: string; dot: string; text: string; bg: string }> = {
   unverified: {
     label: "Not verified",
+    dot: "bg-muted-foreground",
     text: "text-muted-foreground",
     bg: "bg-muted-foreground/15",
   },
   verified: {
     label: "Verified",
+    dot: "bg-success",
     text: "text-success",
     bg: "bg-success/15",
   },
   danger: {
     label: "Unsafe",
+    dot: "bg-destructive",
     text: "text-destructive",
     bg: "bg-destructive/15",
   },
