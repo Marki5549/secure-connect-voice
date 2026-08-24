@@ -552,6 +552,7 @@ function ChatScreen({
   onVerify: () => void;
 }) {
   const t = trustMeta[contact.trust];
+  const s = statusMeta[contact.status];
   const [draft, setDraft] = useState("");
 
   return (
@@ -569,7 +570,8 @@ function ChatScreen({
             {initials(contact.name)}
           </div>
           <span
-            className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background ${t.dot}`}
+            title={s.label}
+            className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background ${s.dot}`}
           />
         </div>
         <div className="min-w-0 flex-1 leading-tight">
