@@ -45,6 +45,7 @@ type Contact = {
   name: string;
   number: string;
   trust: Trust;
+  status: "online" | "offline";
   unread: number;
   fingerprint: string;
 };
@@ -54,6 +55,7 @@ const contacts: Contact[] = [
     name: "Anna Kovalenko",
     number: "+380 67 214 8890",
     trust: "verified",
+    status: "online",
     unread: 2,
     fingerprint: "8F3A 21D9 4C77 0E12 BB65 9A34 5D18 7C90",
   },
@@ -61,6 +63,7 @@ const contacts: Contact[] = [
     name: "Dmytro Shevchuk",
     number: "+380 50 118 4421",
     trust: "unverified",
+    status: "offline",
     unread: 0,
     fingerprint: "1B44 90CE 22A7 6F30 D519 4E8B 7712 03AF",
   },
@@ -68,6 +71,7 @@ const contacts: Contact[] = [
     name: "Olena Marchenko",
     number: "+380 93 552 7710",
     trust: "danger",
+    status: "online",
     unread: 5,
     fingerprint: "77C1 0D23 9E48 A5B6 3F02 8811 6CD4 92E7",
   },
@@ -75,6 +79,7 @@ const contacts: Contact[] = [
     name: "Ivan Petrenko",
     number: "+380 68 907 3312",
     trust: "unverified",
+    status: "offline",
     unread: 0,
     fingerprint: "5A29 B70F 1C64 88D3 E011 47A9 2B55 6E38",
   },
@@ -82,6 +87,7 @@ const contacts: Contact[] = [
     name: "Sofia Bondar",
     number: "+380 66 224 5588",
     trust: "verified",
+    status: "online",
     unread: 1,
     fingerprint: "C3E8 5512 7A0B 96F4 21D7 8834 0AB6 4F19",
   },
@@ -89,6 +95,7 @@ const contacts: Contact[] = [
     name: "Maksym Tkachenko",
     number: "+380 95 401 9923",
     trust: "unverified",
+    status: "online",
     unread: 0,
     fingerprint: "2D96 4417 F80A 3B25 7CE1 5090 D362 8A74",
   },
@@ -115,6 +122,14 @@ const trustMeta: Record<Trust, { label: string; dot: string; text: string; bg: s
     text: "text-destructive",
     bg: "bg-destructive/15",
   },
+};
+
+const statusMeta: Record<
+  Contact["status"],
+  { label: string; dot: string }
+> = {
+  online: { label: "Online", dot: "bg-success" },
+  offline: { label: "Offline", dot: "bg-muted-foreground" },
 };
 
 function initials(name: string) {
@@ -464,6 +479,7 @@ function HomeScreen({
       <div className="mt-2 space-y-2 pb-4">
         {contacts.map((c) => {
           const t = trustMeta[c.trust];
+          const s = statusMeta[c.status];
           return (
             <div
               key={c.number}
@@ -475,8 +491,8 @@ function HomeScreen({
                     {initials(c.name)}
                   </div>
                   <span
-                    title={t.label}
-                    className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card ${t.dot}`}
+                    title={s.label}
+                    className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card ${s.dot}`}
                   />
                 </div>
                 <div className="min-w-0">
@@ -536,6 +552,7 @@ function ChatScreen({
   onVerify: () => void;
 }) {
   const t = trustMeta[contact.trust];
+  const s = statusMeta[contact.status];
   const [draft, setDraft] = useState("");
 
   return (
@@ -553,7 +570,8 @@ function ChatScreen({
             {initials(contact.name)}
           </div>
           <span
-            className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background ${t.dot}`}
+            title={s.label}
+            className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background ${s.dot}`}
           />
         </div>
         <div className="min-w-0 flex-1 leading-tight">
